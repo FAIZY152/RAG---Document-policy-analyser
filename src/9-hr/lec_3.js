@@ -3,7 +3,6 @@ import dotenv from "dotenv";
 dotenv.config();
 import Groq from "groq-sdk";
 import { tavily } from "@tavily/core";
-import { json } from "express";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const tvly = tavily({ apiKey: process.env.WEB_SEARC_API });
@@ -12,12 +11,12 @@ const ToolCall1 = async () => {
   let message = [
     {
       role: "system",
-      content: `You are a smart personal assistant. When users ask about current events, product launches, or information that requires real-time data, you should use the webSearch function to get the latest information.`,
+      content: `You are a smart personal assistant. When users ask about current events or real-time information, use the webSearch function to get the latest data.`,
     },
     {
       role: "user",
       content:
-        "What are the latest verified statistics on casualties, including men, women, and children, in the ongoing Genocide between Israel and Palestine? Please provide sources for the information.",
+        "Search for the latest iPhone 16 and iphone 17 release launch date and year information.",
     },
   ];
 
@@ -45,7 +44,7 @@ const ToolCall1 = async () => {
         },
       },
     ],
-    tool_choice: "required",
+    tool_choice: "auto",
   });
   //   add content to know llm your history
   message.push(completion.choices[0].message);
@@ -76,28 +75,6 @@ const ToolCall1 = async () => {
     model: "llama-3.3-70b-versatile",
     temperature: 0,
     messages: message,
-
-    tools: [
-      {
-        type: "function",
-        function: {
-          name: "webSearch",
-          description:
-            "Your purpose is search the latest information and real time data from the internet.",
-          parameters: {
-            type: "object",
-            properties: {
-              query: {
-                type: "string",
-                description: "The search to perfome search on the internet.",
-              },
-            },
-            required: ["query"],
-          },
-        },
-      },
-    ],
-    tool_choice: "required",
   });
   console.log(
     `Final Ans : ${JSON.stringify(
@@ -109,9 +86,8 @@ const ToolCall1 = async () => {
 };
 
 const webSearch = async ({ query }) => {
-  //   const res = await tvly.search(query, { maxResults: 1 }); // search only one time
-  const res = await tvly.search(query, { maxResults: 3 }); // by default it search 5 times
-  const finalRes = res.results.map((data) => data.content);
+  const res = await tvly.search(query, { maxResults: 3 });
+  const finalRes = res.results.map((data) => data.content).join("\n\n");
   return finalRes;
 };
 
