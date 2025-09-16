@@ -106,7 +106,9 @@ Output:
       },
       {
         role: "user",
-        content: `Review: GOAL: Organize a 2-hour give a lecture of Quran Surah al Baqarah in english.`,
+        content: `Now convert this:
+         Input: "AuroraCam 4K action camera, waterproof to 30m, 64GB included, sells for $199."
+         Output: `,
       },
     ],
   });
