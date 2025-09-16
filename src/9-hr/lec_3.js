@@ -3,8 +3,10 @@ import dotenv from "dotenv";
 dotenv.config();
 import Groq from "groq-sdk";
 import { tavily } from "@tavily/core";
+import { json } from "express";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const tvly = tavily({ apiKey: process.env.WEB_SEARC_API });
 
 const ToolCall1 = async () => {
   const completion = await groq.chat.completions.create({
@@ -62,12 +64,9 @@ const ToolCall1 = async () => {
   }
 };
 
-
-const tvly = tavily({ apiKey: "" });
-
-const webSearch = ({ query }) => {
-  console.log("tool function is calling");
-
+const webSearch = async ({ query }) => {
+  const res = await tvly.search({ query });
+  console.log("Result", JSON.stringify(res));
   return `Searched result for ${query}`;
 };
 
