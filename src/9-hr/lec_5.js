@@ -4,6 +4,7 @@
 
 // 1. Load environment variables from .env file
 import dotenv from "dotenv";
+import readline from "node:readline/promises";
 dotenv.config();
 
 // 2. Import required libraries
@@ -18,6 +19,10 @@ const tvly = tavily({ apiKey: process.env.WEB_SEARC_API });
  * Main function to demonstrate tool calling
  */
 const ToolCall1 = async () => {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
   // -------------------------------
   // Initial Conversation Setup
   // -------------------------------
@@ -28,79 +33,93 @@ const ToolCall1 = async () => {
       When users ask about current events or real-time information, 
       use the webSearch function to get the latest data.`,
     },
-    {
-      role: "user",
-      content: "Search the current weather in Pakistan, Peshawar",
-    },
+    // {
+    //   role: "user",
+    //   content: "Search the current weather in Pakistan, Peshawar",
+    // }, // make it dynamic
   ];
 
-  // Infinite loop to handle tool calling until completion
+  //   write one loop for user then user ask question until he get all thing and directly run another llm loop after ask question and dynamic the user message into input
   while (true) {
-    // -----------------------------------------
-    // Step 1: Ask Groq LLM for next action
-    // -----------------------------------------
-    const completion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile", // Groq LLM model
-      temperature: 0, // Deterministic response
-      messages: message, // Conversation history
-      tools: [
-        {
-          type: "function",
-          function: {
-            name: "webSearch",
-            description:
-              "Your purpose is to search the latest information and real-time data from the internet.",
-            parameters: {
-              type: "object",
-              properties: {
-                query: {
-                  type: "string",
-                  description: "The search query to perform on the internet.",
-                },
-              },
-              required: ["query"],
-            },
-          },
-        },
-      ],
-      tool_choice: "auto", // Let the model decide when to call the tool
+    const question = await rl.question("You : ");
+
+    if (question == "bye") {
+      break;    
+    }
+    message.push({
+      role: "user",
+      content: question,
     });
 
-    // Add model’s reply to conversation history
-    message.push(completion.choices[0].message);
+    while (true) {
+      // -----------------------------------------
+      // Step 1: Ask Groq LLM for next action
+      // -----------------------------------------
+      const completion = await groq.chat.completions.create({
+        model: "llama-3.3-70b-versatile", // Groq LLM model
+        temperature: 0, // Deterministic response
+        messages: message, // Conversation history
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "webSearch",
+              description:
+                "Your purpose is to search the latest information and real-time data from the internet.",
+              parameters: {
+                type: "object",
+                properties: {
+                  query: {
+                    type: "string",
+                    description: "The search query to perform on the internet.",
+                  },
+                },
+                required: ["query"],
+              },
+            },
+          },
+        ],
+        tool_choice: "auto", // Let the model decide when to call the tool
+      });
 
-    // -----------------------------------------
-    // Step 2: Check if tool calls are requested
-    // -----------------------------------------
-    let tools = completion.choices[0].message.tool_calls;
+      // Add model’s reply to conversation history
+      message.push(completion.choices[0].message);
 
-    // If no tool calls are returned, break the loop and print final answer
-    if (!tools) {
-      console.log(`Ans : ${completion.choices[0].message.content}`);
-      break;
-    }
+      // -----------------------------------------
+      // Step 2: Check if tool calls are requested
+      // -----------------------------------------
+      let tools = completion.choices[0].message.tool_calls;
 
-    // -----------------------------------------
-    // Step 3: Handle Tool Calls (webSearch)
-    // -----------------------------------------
-    for (let tool of tools) {
-      const functionName = tool.function.name;
-      const functionArgs = JSON.parse(tool.function.arguments);
+      // If no tool calls are returned, break the loop and print final answer
+      if (!tools) {
+        console.log(`Ans : ${completion.choices[0].message.content}`);
+        break;
+      }
 
-      if (functionName === "webSearch") {
-        // Call webSearch function with provided arguments
-        const toolRes = await webSearch(functionArgs);
+      // -----------------------------------------
+      // Step 3: Handle Tool Calls (webSearch)
+      // -----------------------------------------
+      for (let tool of tools) {
+        const functionName = tool.function.name;
+        const functionArgs = JSON.parse(tool.function.arguments);
 
-        // Push tool result back to the conversation history
-        message.push({
-          tool_call_id: tool.id,
-          role: "tool",
-          name: functionName,
-          content: toolRes,
-        });
+        if (functionName === "webSearch") {
+          // Call webSearch function with provided arguments
+          const toolRes = await webSearch(functionArgs);
+
+          // Push tool result back to the conversation history
+          message.push({
+            tool_call_id: tool.id,
+            role: "tool",
+            name: functionName,
+            content: toolRes,
+          });
+        }
       }
     }
   }
+
+  // Infinite loop to handle tool calling until completion
 };
 
 /**
@@ -108,6 +127,8 @@ const ToolCall1 = async () => {
  * Uses Tavily API to fetch live web search results
  */
 const webSearch = async ({ query }) => {
+  console.log("Calling Web Search ...");
+
   const res = await tvly.search(query, { maxResults: 3 });
 
   // Combine results into a single string for model consumption
