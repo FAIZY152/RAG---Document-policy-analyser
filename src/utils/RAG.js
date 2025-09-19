@@ -1,4 +1,5 @@
-import { prepareDoc } from "./prepareDoc.js";
+import { loadPDF } from "./prepareDoc.js";
+import path from "path";
 
 const filePath = path.resolve(process.cwd(), "src", "utils", "p-docs.pdf");
-prepareDoc(filePath);
+loadPDF(filePath);

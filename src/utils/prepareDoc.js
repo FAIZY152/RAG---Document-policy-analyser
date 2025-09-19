@@ -7,11 +7,11 @@ export async function loadPDF(relativePath) {
   console.log("📄 Loading PDF from:", filePath);
 
   // Initialize PDF loader
-  const loader = new PDFLoader(filePath);
+  const loader = new PDFLoader(filePath, { splitPages: false });
 
   // Load and return docs
   const docs = await loader.load();
-  console.log(`✅ Loaded ${docs.length} document(s) from ${relativePath}`);
+  console.log("📄 Docs loaded:", docs[0].pageContent);
 
   return docs;
 }
